@@ -1,0 +1,55 @@
+# --- IDE & Environment Settings ---
+.idea/
+.vscode/
+.venv/
+.venv_app/
+
+# --- EA Game Scripts (COPYRIGHTED - DO NOT UPLOAD) ---
+EA/
+
+# --- External Libraries (S4CL Source) ---
+Libraries/
+
+# --- Compiled Python Files ---
+__pycache__/
+*/__pycache__
+*.py[cod]
+*$py.class
+
+# --- User Data & Secrets (CRITICAL) ---
+# Do not upload your API keys or personal chat logs
+Server/config.json
+Server/memory.db
+
+# --- PyInstaller Build Artifacts ---
+# These are generated when you compile the .exe
+build/
+dist/
+*.spec
+
+# --- Modding Tools Logs ---
+compilelog.txt
+decompilelog.txt
+
+# --- Release Archives ---
+# Don't upload the resulting zip/exe files to the source code repo
+Release/
+**/*.7z
+**/*.zip
+**/*.ts4script
+**/*.exe
+
+# --- Decompilation Artifacts ---
+custom_scripts_for_decompile/*.py
+custom_scripts_for_decompile/*.pyc
+custom_scripts_for_decompile/*.pyo
+custom_scripts_for_decompile/**/*.pyc
+custom_scripts_for_decompile/**/*.pyo
+custom_scripts_for_decompile/**/*.py
+
+# --- Misc System Files ---
+**/*.lnk
+**/*.xml___jb_old___
+Tunings/Temp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,589 @@
+<!-- Server/templates/chat.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimsAIChat</title>
+    <style>
+        /* --- MAIN LAYOUT --- */
+        body {
+            background-color: #2b2b2b;
+            color: #ffffff;
+            font-family: 'Segoe UI Emoji', 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #header {
+            background-color: #1f1f1f;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3d3d3d;
+        }
+        #header-title {
+            font-weight: bold;
+            font-size: 18px;
+            flex-grow: 1;
+            text-align: center;
+        }
+        #btn-settings {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 5px;
+        }
+        #btn-settings:hover { color: #fff; }
+
+        #chat-history {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        /* Scrollbar */
+        #chat-history::-webkit-scrollbar { width: 8px; }
+        #chat-history::-webkit-scrollbar-track { background: #2b2b2b; }
+        #chat-history::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+
+        .message {
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            line-height: 1.4;
+            font-size: 14px;
+            position: relative;
+        }
+        .msg-player { background-color: #0056b3; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-sim { align-self: flex-start; border-bottom-left-radius: 2px; }
+        
+        .sim-name-label {
+            font-size: 11px;
+            font-weight: bold;
+            opacity: 0.8;
+            margin-bottom: 4px;
+            display: block;
+            text-transform: uppercase;
+        }
+        .action-text { font-style: italic; opacity: 0.65; }
+        .msg-system { color: #888; font-style: italic; align-self: center; font-size: 12px; }
+        
+        #controls {
+            padding: 10px;
+            background-color: #1f1f1f;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #input-row { display: flex; gap: 8px; }
+        input[type="text"], select, input[type="number"] {
+            flex: 1;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            background-color: #333;
+            color: white;
+            font-family: 'Segoe UI Emoji', sans-serif;
+            outline: none;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        #btn-send { background-color: #0056b3; }
+        #btn-continue { background-color: #555; width: 100%; display: none; }
+        #btn-end { background-color: #a00; width: 100%; }
+
+        /* --- SETTINGS MODAL --- */
+        #settings-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #settings-box {
+            background: #2b2b2b;
+            border: 1px solid #444;
+            width: 85%;
+            max-width: 350px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            background: #1f1f1f;
+            padding: 12px;
+            border-bottom: 1px solid #444;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+        .close-btn { background: none; color: #888; cursor: pointer; font-size: 16px; padding: 0; }
+        .modal-body { padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        
+        .setting-group { display: flex; flex-direction: column; gap: 5px; }
+        .setting-label { font-size: 12px; color: #aaa; text-transform: uppercase; }
+        
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .tab-btn { background: none; color: #888; padding: 5px; font-size: 13px; cursor: pointer; }
+        .tab-btn.active { color: #fff; border-bottom: 2px solid #0056b3; }
+        
+        .danger-zone { border: 1px solid #a00; padding: 10px; border-radius: 4px; margin-top: 10px; }
+        #btn-purge { background-color: #800; width: 100%; font-size: 12px; }
+        #btn-save { background-color: #0056b3; width: 100%; margin-top: 10px; }
+
+        /* --- CUSTOM DIALOG/ALERT MODAL --- */
+        #dialog-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 200; /* Higher than settings */
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #dialog-box {
+            background: #2b2b2b;
+            border: 1px solid #555;
+            width: 80%;
+            max-width: 300px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            animation: fadeIn 0.15s ease-out;
+        }
+        .dialog-header {
+            background: #1f1f1f;
+            padding: 10px 15px;
+            border-bottom: 1px solid #444;
+            font-weight: bold;
+            font-size: 14px;
+            color: #ddd;
+        }
+        .dialog-body {
+            padding: 20px 15px;
+            font-size: 13px;
+            color: #eee;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .dialog-footer {
+            padding: 10px 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            background: #262626;
+            border-top: 1px solid #3d3d3d;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        .btn-dialog {
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 70px;
+        }
+        .btn-dialog-ok { background-color: #0056b3; color: white; }
+        .btn-dialog-ok:hover { background-color: #004494; }
+        
+        .btn-dialog-cancel { background-color: #444; color: #ddd; }
+        .btn-dialog-cancel:hover { background-color: #555; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <div style="width:24px"></div> <!-- Spacer -->
+        <div id="header-title">Loading...</div>
+        <button id="btn-settings" onclick="openSettings()">⚙️</button>
+    </div>
+
+    <div id="chat-history"></div>
+
+    <div id="controls">
+        <div id="input-row">
+            <input type="text" id="msg-input" placeholder="Type message... (Win + . for Emojis)">
+            <button id="btn-send" onclick="sendMessage()">Send</button>
+        </div>
+        <button id="btn-continue" onclick="sendContinue()">Continue / Listen</button>
+        <button id="btn-end" onclick="endChat()">End Chat</button>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-overlay">
+        <div id="settings-box">
+            <div class="modal-header">
+                <span>Settings</span>
+                <button class="close-btn" onclick="closeSettings()">✕</button>
+            </div>
+            <div class="modal-body">
+                
+                <div class="tab-nav">
+                    <button class="tab-btn active" onclick="switchTab('ai')" id="tab-ai">AI Provider</button>
+                    <button class="tab-btn" onclick="switchTab('data')" id="tab-data">Maintenance</button>
+                </div>
+
+                <!-- TAB: AI -->
+                <div id="content-ai">
+                    <div class="setting-group">
+                        <span class="setting-label">Output Language</span>
+                        <select id="cfg-language">
+                            <option value="English">English</option>
+                            <option value="Spanish">Spanish (Español)</option>
+                            <option value="French">French (Français)</option>
+                            <option value="German">German (Deutsch)</option>
+                            <option value="Italian">Italian (Italiano)</option>
+                            <option value="Portuguese">Portuguese (Português)</option>
+                            <option value="Russian">Russian (Русский)</option>
+                            <option value="Japanese">Japanese (日本語)</option>
+                            <option value="Korean">Korean (한국어)</option>
+                            <option value="Chinese (Simplified)">Chinese (Simplified)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <span class="setting-label">Provider</span>
+                        <select id="cfg-provider" onchange="updateModelDefaults()">
+                            <option value="Gemini">Google Gemini</option>
+                            <option value="OpenAI">OpenAI (ChatGPT)</option>
+                            <option value="DeepSeek">DeepSeek</option>
+                            <option value="OpenRouter">OpenRouter.ai</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <span class="setting-label">API Key</span>
+                        <input type="text" id="cfg-key" type="password" placeholder="sk-...">
+                    </div>
+
+                    <div class="setting-group">
+                        <span class="setting-label">Model Name</span>
+                        <input type="text" id="cfg-model" placeholder="gemini-2.5-flash">
+                    </div>
+
+                    <div class="setting-group">
+                        <span class="setting-label">Temperature (0.1 - 1.0)</span>
+                        <input type="number" id="cfg-temp" step="0.1" min="0.1" max="1.0" value="0.8">
+                    </div>
+
+                    <button id="btn-save" onclick="saveSettings()">Save Configuration</button>
+                </div>
+
+                <!-- TAB: DATA -->
+                <div id="content-data" style="display:none;">
+                    <div class="danger-zone">
+                        <span class="setting-label" style="color:#faa">Danger Zone</span>
+                        <p style="font-size:11px; color:#ccc; margin:5px 0 10px 0;">
+                            Start a new game? This will delete all chat logs and event memories. Location descriptions will be kept.
+                        </p>
+                        <button id="btn-purge" onclick="purgeData()">Delete All History</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM DIALOG MODAL -->
+    <div id="dialog-overlay">
+        <div id="dialog-box">
+            <div class="dialog-header" id="dialog-title">System Message</div>
+            <div class="dialog-body" id="dialog-msg">Action completed.</div>
+            <div class="dialog-footer">
+                <button class="btn-dialog btn-dialog-cancel" id="btn-dialog-cancel" onclick="resolveDialog(false)">Cancel</button>
+                <button class="btn-dialog btn-dialog-ok" id="btn-dialog-ok" onclick="resolveDialog(true)">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isActive = false;
+        let isApiReady = false;
+
+        // --- CORE CHAT LOGIC ---
+        window.addEventListener('pywebviewready', function() { isApiReady = true; });
+
+        function generateColor(str) {
+            let hash = 0;
+            const seed = str.split(' ')[0]; 
+            for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+            return `hsl(${Math.abs(hash) % 360}, 50%, 25%)`;
+        }
+
+        function formatMessageText(text) {
+            return text.replace(/\*([^*]+)\*/g, '<span class="action-text">*$1*</span>');
+        }
+
+        function appendMessage(sender, text, type) {
+            const history = document.getElementById('chat-history');
+            const div = document.createElement('div');
+            div.className = `message msg-${type}`;
+            const formattedText = (type !== 'system') ? formatMessageText(text) : text;
+            
+            if (type === 'player' || type === 'system') {
+                div.innerHTML = formattedText;
+            } else {
+                div.innerHTML = `<strong>${sender}:</strong> ${formattedText}`;
+            }
+            history.appendChild(div);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function processSimResponse(fullText) {
+            const history = document.getElementById('chat-history');
+            const lines = fullText.split('\n');
+            let currentBubble = null;
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+
+                // --- NEW: CLEANUP STEP ---
+                // Remove Markdown Bold (**) completely to prevent formatting glitches
+                line = line.replace(/\*\*/g, ""); 
+                // -------------------------
+
+                const match = line.match(/^([^\:]+?)(?:\s\(.*?\))?:\s*(.*)/);
+
+                if (match) {
+                    const name = match[1].trim();
+                    const rawMsg = match[2].trim();
+                    const color = generateColor(name);
+
+                    // Apply Formatting
+                    const formattedMsg = formatMessageText(rawMsg);
+
+                    const div = document.createElement('div');
+                    div.className = 'message msg-sim';
+                    div.style.backgroundColor = color;
+                    div.innerHTML = `<span class="sim-name-label">${name}</span>${formattedMsg}`;
+                    
+                    history.appendChild(div);
+                    currentBubble = div;
+
+                } else {
+                    if (currentBubble) {
+                        // Apply Formatting to continuation lines too
+                        currentBubble.innerHTML += `<br>${formatMessageText(line)}`;
+                    } else {
+                        const div = document.createElement('div');
+                        div.className = 'message msg-sim';
+                        div.style.backgroundColor = '#3a3a3a';
+                        div.innerHTML = formatMessageText(line);
+                        history.appendChild(div);
+                        currentBubble = div;
+                    }
+                }
+            });
+
+            history.scrollTop = history.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('msg-input');
+            const text = input.value;
+            if (!text) return;
+            appendMessage("You", text, "player");
+            input.value = "";
+            try {
+                const res = await fetch('/app/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: text})
+                });
+                const data = await res.json();
+                processSimResponse(data.reply);
+            } catch (e) { appendMessage("System", "Error sending message", "system"); }
+        }
+
+        function sendContinue() {
+            appendMessage("System", "(Listening...)", "system");
+            fetch('/app/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: "[CONTINUE]"})
+            })
+            .then(res => res.json())
+            .then(data => processSimResponse(data.reply));
+        }
+
+        function endChat() {
+            fetch('/ui/end', {method: 'POST'});
+            if (isApiReady) window.pywebview.api.hide_window();
+            isActive = false;
+            document.getElementById('header-title').innerText = "Ended";
+        }
+
+        document.getElementById('msg-input').addEventListener("keypress", function(event) {
+            if (event.key === "Enter") sendMessage();
+        });
+
+        // --- CUSTOM DIALOG LOGIC ---
+        let dialogResolver = null;
+
+        function showDialog(title, message, isConfirm = false) {
+            document.getElementById('dialog-title').innerText = title;
+            document.getElementById('dialog-msg').innerText = message;
+            document.getElementById('dialog-overlay').style.display = 'flex';
+            
+            // Show/Hide Cancel button based on mode
+            const btnCancel = document.getElementById('btn-dialog-cancel');
+            btnCancel.style.display = isConfirm ? 'inline-block' : 'none';
+            
+            // Focus OK button for convenience
+            document.getElementById('btn-dialog-ok').focus();
+
+            return new Promise((resolve) => {
+                dialogResolver = resolve;
+            });
+        }
+
+        function resolveDialog(result) {
+            document.getElementById('dialog-overlay').style.display = 'none';
+            if (dialogResolver) {
+                dialogResolver(result);
+                dialogResolver = null;
+            }
+        }
+
+        // --- SETTINGS LOGIC ---
+        
+        function openSettings() {
+            document.getElementById('settings-overlay').style.display = "flex";
+            // Load current config
+            fetch('/settings/get')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('cfg-language').value = data.language || "English"; // <--- NEW
+                    document.getElementById('cfg-provider').value = data.provider || "Gemini";
+                    document.getElementById('cfg-key').value = data.api_key || "";
+                    document.getElementById('cfg-model').value = data.model || "gemini-2.5-flash";
+                    document.getElementById('cfg-temp').value = data.temperature || 0.8;
+                });
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-overlay').style.display = "none";
+        }
+
+        function switchTab(tab) {
+            document.getElementById('content-ai').style.display = (tab === 'ai') ? 'block' : 'none';
+            document.getElementById('content-data').style.display = (tab === 'data') ? 'block' : 'none';
+            document.getElementById('tab-ai').className = (tab === 'ai') ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tab-data').className = (tab === 'data') ? 'tab-btn active' : 'tab-btn';
+        }
+
+        function updateModelDefaults() {
+            const provider = document.getElementById('cfg-provider').value;
+            const modelInput = document.getElementById('cfg-model');
+            if (provider === "Gemini") modelInput.value = "gemini-2.5-flash";
+            else if (provider === "OpenAI") modelInput.value = "gpt-4o";
+            else if (provider === "DeepSeek") modelInput.value = "deepseek-chat";
+            else if (provider === "OpenRouter") modelInput.value = "cognitivecomputations/dolphin-mistral-24b-venice-edition:free:online";
+        }
+
+        function saveSettings() {
+            const payload = {
+                language: document.getElementById('cfg-language').value, // <--- NEW
+                provider: document.getElementById('cfg-provider').value,
+                api_key: document.getElementById('cfg-key').value,
+                model: document.getElementById('cfg-model').value,
+                temperature: document.getElementById('cfg-temp').value
+            };
+            
+            fetch('/settings/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(async (data) => {
+                await showDialog("Configuration", "Status: " + data.status);
+                closeSettings();
+            });
+        }
+
+        async function purgeData() {
+            const confirmed = await showDialog(
+                "Warning", 
+                "Are you sure? This will delete all chat history and memories. This cannot be undone.", 
+                true
+            );
+
+            if(confirmed) {
+                fetch('/data/purge', { method: 'POST' })
+                .then(async () => {
+                    document.getElementById('chat-history').innerHTML = "";
+                    await showDialog("System", "Memory core purged successfully.");
+                    closeSettings();
+                });
+            }
+        }
+
+        // --- POLL LOOP ---
+        let failCount = 0;
+
+        setInterval(async () => {
+            try {
+                const res = await fetch('/ui/poll');
+                
+                // If fetch fails explicitly (e.g. 404/500), throw to catch block
+                if (!res.ok) throw new Error("Server Error");
+                
+                // Success - Reset fail count
+                failCount = 0;
+
+                const data = await res.json();
+                if (data.status === "ACTIVE") {
+                    if (!isActive) {
+                        isActive = true;
+                        document.getElementById('chat-history').innerHTML = ""; 
+                        if (isApiReady) window.pywebview.api.show_window();
+                    }
+                    document.getElementById('header-title').innerText = data.sim_name;
+                    document.getElementById('btn-continue').style.display = (data.mode === "GROUP") ? "block" : "none";
+                } else if (data.status === "INACTIVE" || data.status === "ENDING") {
+                    if (isActive) {
+                        isActive = false;
+                        if (isApiReady) window.pywebview.api.hide_window();
+                    }
+                }
+            } catch (e) {
+                // Connection Refused / Server Gone
+                failCount++;
+                // If 5 consecutive fails (approx 4 seconds), assume Game/Server closed.
+                if (failCount > 5) {
+                    if (isApiReady) window.pywebview.api.quit_app();
+                }
+            }
+        }, 800);
+    </script>
+</body>
+</html>
