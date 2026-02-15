@@ -1,4 +1,12 @@
-# UI/client_ui.py
+# ==============================================================================
+# SimsAIChat
+# Copyright (C) 2026 dino2007
+#
+# This software is provided for personal use only.
+# Unauthorized redistribution or commercial use is strictly prohibited.
+#
+# Official Source: https://github.com/dino2007/SimsAIChat
+# ==============================================================================
 
 import webview
 import time
