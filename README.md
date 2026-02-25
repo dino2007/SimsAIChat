@@ -1,3 +1,5 @@
+![Malware Scan](https://github.com)
+
 ## Development & Build Instructions
 
 This project uses a "Triangle Architecture" (Mod Node + App Node).
