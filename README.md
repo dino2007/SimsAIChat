@@ -1,4 +1,4 @@
-![Malware Scan](https://github.com)
+[![Malware Scan](https://github.com/dino2007/SimsAIChat/actions/workflows/antivirus-scan.yml/badge.svg)](https://github.com/dino2007/SimsAIChat/actions/workflows/antivirus-scan.yml)
 
 ## Development & Build Instructions
 
